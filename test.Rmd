@@ -1,0 +1,56 @@
+---
+title: "Untitled"
+author: "Max"
+date: "Friday, March 27, 2015"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r fig.width = 10, echo=FALSE, warning=FALSE}
+library("knitr")
+sc <- read.csv (file="scorecard_data.csv")
+sc$Date <- as.Date(sc$Date, "%m/%d/%Y")
+sc$PDate <- as.POSIXct(sc$Date)
+sc <- subset(sc, Year == 2015)
+
+sc <- cbind (sc, Cum_Conn_Comp=cumsum(sc$Connections_Completed))
+sc <- cbind (sc, Cum_Conn_Sold=cumsum(sc$Connections_Sold))
+sc <- cbind (sc, Cum_Conn_Plan=cumsum(sc$Connections_Plan))
+
+df <- data.frame(month=sc$Month, 
+                 sc$Connections_Sold,
+                 sc$Connections_Completed,
+                 comp_to_sold=sc$Connections_Completed / sc$Connections_Sold,
+                 sc$Cum_Conn_Sold, 
+                 sc$Cum_Conn_Comp, 
+                 cum_comp_to_sold=sc$Cum_Conn_Comp / sc$Cum_Conn_Sold)
+
+df <- na.omit(df)
+
+#format table
+# percentages
+df$comp_to_sold <- paste(format(round(df$comp_to_sold*100, digits=0), big.mark=","), "%")
+df$cum_comp_to_sold <- paste(format(round(df$cum_comp_to_sold*100, digits=0), big.mark=","), "%")
+
+# connections
+df$sc.Cum_Conn_Sold <- format(round(df$sc.Cum_Conn_Sold, digits=0), big.mark=",")
+df$sc.Cum_Conn_Comp <- format(round(df$sc.Cum_Conn_Comp, digits=0), big.mark=",")
+df$sc.Connections_Sold <- format(round(df$sc.Connections_Sold, digits=0), big.mark=",")
+df$sc.Connections_Completed <- format(round(df$sc.Connections_Completed, digits=0), big.mark=",")
+
+colnames(df) <- c("Month", "Sold", "Comp", "Comp to Sold", "Cum Sold", "Cum Comp", "Cum Comp to Sold")
+
+#kable(df)
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+
+kable(df)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
