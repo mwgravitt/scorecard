@@ -1,6 +1,6 @@
 ---
 title: "Analytics Implementation Scorecard"
-author: "Max Gravitt"
+author: "Max G"
 date: "Tuesday, March 24, 2015"
 output: pdf_document
 classoption: landscape
