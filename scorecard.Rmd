@@ -7,6 +7,7 @@ classoption: landscape
 ---
 
 ``` {r echo=FALSE, warning=FALSE}
+source ("scorecard.R")
 library("ggplot2")
 library("reshape")
 library("scales")
@@ -38,6 +39,10 @@ data_ytd$variable <- gsub("_", " ", data_ytd$variable)
 mrr_data_ytd <- subset(data_ytd, variable == "Cum MRR Comp" | variable == "Cum MRR Sold" | variable == "Cum MRR Plan")
 conn_data_ytd <- subset(data_ytd, variable == "Cum Conn Comp" | variable == "Cum Conn Sold" | variable == "Cum Conn Plan")
 
+sc <- cbind(sc, cost_per_connection=sc$Expense_Actual/sc$Connections_Completed)
+prod_data <- melt (sc, id=c("Date", "Year", "Month", "PDate"))
+prod_data$variable <- gsub("_", " ", prod_data$variable)
+prod_data <- subset(prod_data, variable == "cost per connection")
 
 ```
 
@@ -48,27 +53,17 @@ conn_data_ytd <- subset(data_ytd, variable == "Cum Conn Comp" | variable == "Cum
 * Delayed hiring of some roles to Q3 to solve for "Q2 budget challenge"
 
 ```{r fig.width=10, echo=FALSE, warning=FALSE}
-# create plot, add lines and points
-g <- ggplot(data=budget_data, aes(x=PDate, y=value, group=variable)) 
-g <- g + geom_line(aes(color=variable, group=variable)) 
-g <- g + geom_point()  
 
-# configure labels and axis
-g <- g + ggtitle("Expense Budget vs Actual by Month") 
-g <- g + xlab("Month") + ylab("Implementation Expenses") 
-g <- g + scale_y_continuous(labels = dollar) 
-g <- g + scale_x_datetime() 
+getTSPlot(budget_data, "Expense Budget vs Actual by Month", "Month", "Implementation Expenses", dollar )
 
-# apply theme
-g <- g + theme_few()
+```
 
-# blank out the legend title
-g <- g+ theme(legend.title=element_blank(), legend.position="bottom") 
+```{r fig.width=10, echo=FALSE, warning=FALSE}
 
-
-# add a vertical line on "today"
-g <- g + geom_vline(lty="dotted", xintercept = as.numeric(Sys.time()))
+g <- getTSPlot(prod_data, "Cost per Connection", "Month", "Cost / Connection", dollar )
+g <- g + scale_y_continuous(labels = dollar, limits=c(0,2000)) 
 g
+
 ```
 
 \pagebreak
@@ -79,26 +74,7 @@ g
 * Pet Supplies Plus will complete in April which will drive MRR and connections
 
 ```{r fig.width = 10, echo=FALSE, warning=FALSE}
-# create plot, add lines and points
-g <- ggplot(data=mrr_data, aes(x=PDate, y=value, group=variable)) 
-g <- g + geom_line(aes(color=variable, group=variable)) 
-g <- g + geom_point()  
-
-# configure labels and axis
-g <- g + ggtitle("MRR Sold vs Completed vs Plan by Month") 
-g <- g + xlab("Month") + ylab("MRR") 
-g <- g + scale_y_continuous(labels = dollar) 
-g <- g + scale_x_datetime() 
-
-# apply theme
-g <- g + theme_few()
-
-# blank out the legend title
-g <- g+ theme(legend.title=element_blank(), legend.position="bottom") 
-
-# add a vertical line on "today"
-g <- g + geom_vline(lty="dotted", xintercept = as.numeric(Sys.time()))
-g
+getTSPlot(mrr_data, "MRR Sold vs Completed vs Plan by Month", "Month", "MRR", dollar )
 
 ```
 
@@ -135,26 +111,8 @@ kable(df)
 
 ```{r fig.width = 10, echo=FALSE, warning=FALSE}
 
-# create plot, add lines and points
-g <- ggplot(data=mrr_data_ytd, aes(x=PDate, y=value, group=variable)) 
-g <- g + geom_line(aes(color=variable, group=variable)) 
-g <- g + geom_point()  
+getTSPlot(mrr_data_ytd, "YTD Cumulative MRR Sold, Completed and Planned", "Month", "MRR", dollar )
 
-# configure labels and axis
-g <- g + ggtitle("YTD Cumulative MRR Sold, Completed and Planned") 
-g <- g + xlab("Month") + ylab("MRR") 
-g <- g + scale_y_continuous(labels = dollar) 
-g <- g + scale_x_datetime() 
-
-# apply theme
-g <- g + theme_few() 
-
-# blank out the legend title
-g <- g+ theme(legend.title=element_blank(), legend.position="bottom") 
-
-# add a vertical line on "today"
-g <- g + geom_vline(lty="dotted", xintercept = as.numeric(Sys.time()))
-g
 ```
 
 ```{r echo=FALSE, warning=FALSE}
@@ -193,26 +151,7 @@ kable(df)
 
 ```{r fig.width = 10, echo=FALSE, warning=FALSE}
 
-# create plot, add lines and points
-g <- ggplot(data=conn_data, aes(x=PDate, y=value, group=variable)) 
-g <- g + geom_line(aes(color=variable, group=variable)) 
-g <- g + geom_point()  
-
-# configure labels and axis
-g <- g + ggtitle("Connections Sold vs Completed vs Plan by Month") 
-g <- g + xlab("Month") + ylab("Connections") 
-g <- g + scale_y_continuous() 
-g <- g + scale_x_datetime() 
-
-# apply theme
-g <- g + theme_few()
-
-# blank out the legend title
-g <- g+ theme(legend.title=element_blank(), legend.position="bottom") 
-
-# add a vertical line on "today"
-g <- g + geom_vline(lty="dotted", xintercept = as.numeric(Sys.time()))
-g
+getTSPlot(conn_data, "Connections Sold vs Completed vs Plan by Month", "Month", "Connections", comma )
 
 ```
 
@@ -244,26 +183,9 @@ kable(df)
 
 
 ```{r fig.width = 10, echo=FALSE, warning=FALSE}
-#create plot, add lines and points
-g <- ggplot(data=conn_data_ytd, aes(x=PDate, y=value, group=variable)) 
-g <- g + geom_line(aes(color=variable, group=variable)) 
-g <- g + geom_point()  
 
-# configure labels and axis
-g <- g + ggtitle("YTD Cumulative Connections Sold, Completed and Planned") 
-g <- g + xlab("Month") + ylab("Connections") 
-g <- g + scale_y_continuous() 
-g <- g + scale_x_datetime() 
+getTSPlot(conn_data_ytd, "YTD Cumulative Connections Sold, Completed and Planned", "Month", "Connections", comma )
 
-# apply theme
-g <- g + theme_few() 
-
-# blank out the legend title
-g <- g+ theme(legend.title=element_blank(), legend.position="bottom") 
-
-# add a vertical line on "today"
-g <- g + geom_vline(lty="dotted", xintercept = as.numeric(Sys.time()))
-g
 ```
 
 

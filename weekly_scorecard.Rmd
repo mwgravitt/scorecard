@@ -1,0 +1,102 @@
+---
+title: "Weekly Analytics Implementation Scorecard"
+author: "Max"
+date: "Saturday, March 28, 2015"
+output: pdf_document
+---
+
+
+``` {r echo=FALSE, warning=FALSE}
+source ("scorecard.R")
+library("ggplot2")
+library("reshape")
+library("scales")
+library("ggthemes")
+library("knitr")
+sc <- read.csv (file="weekly.csv")
+sc$Date <- as.Date(sc$Date, "%m/%d/%Y")
+sc$PDate <- as.POSIXct(sc$Date)
+
+sc <- cbind (sc, Lag (sc$MRR_Sold, k=6))
+  
+data <- melt (sc, id=c("Date", "PDate"))
+data$variable <- gsub("_", " ", data$variable)
+
+mrr_data <- subset(data, variable == "MRR Sold" | variable == "MRR Completed")
+mrr_lag_data <- subset(data, variable == "MRR Completed" | variable == "Lag.6")
+conn_data <- subset(data, variable == "Connections Sold" | variable == "Connections Completed")
+
+# prepare YTD data
+# sc_ytd <- subset(sc, Year == 2015)
+# sc_ytd <- cbind (sc_ytd, Cum_MRR_Comp=cumsum(sc_ytd$MRR_Completed))
+# sc_ytd <- cbind (sc_ytd, Cum_MRR_Sold=cumsum(sc_ytd$MRR_Sold))
+# sc_ytd <- cbind (sc_ytd, Cum_MRR_Plan=cumsum(sc_ytd$MRR_Plan))
+# sc_ytd <- cbind (sc_ytd, Cum_Conn_Comp=cumsum(sc_ytd$Connections_Completed))
+# sc_ytd <- cbind (sc_ytd, Cum_Conn_Sold=cumsum(sc_ytd$Connections_Sold))
+# sc_ytd <- cbind (sc_ytd, Cum_Conn_Plan=cumsum(sc_ytd$Connections_Plan))
+
+# data_ytd <- melt (sc_ytd, id=c("Date", "Year", "Month", "PDate"))
+# data_ytd$variable <- gsub("_", " ", data_ytd$variable)
+# 
+# mrr_data_ytd <- subset(data_ytd, variable == "Cum MRR Comp" | variable == "Cum MRR Sold" | variable == "Cum MRR Plan")
+# conn_data_ytd <- subset(data_ytd, variable == "Cum Conn Comp" | variable == "Cum Conn Sold" | variable == "Cum Conn Plan")
+
+
+```
+
+You can also embed plots, for example:
+
+```{r fig.width=10, echo=FALSE, warning=FALSE}
+
+ g <- getTSPlotWeekly(mrr_data, "MRR Sold vs Completed by Week", "Week", "MRR", dollar )
+  g <- g +stat_smooth(method = "lm", formula = y ~ x + I(x^2), size = 1, se=F) 
+
+ g
+
+```
+
+```{r fig.width=10, echo=FALSE, warning=FALSE}
+
+ g <- getTSPlotWeekly(mrr_lag_data, "MRR Sold vs Completed (LAG 6) by Week", "Week", "MRR", dollar )
+  g <- g +stat_smooth(method = "lm", formula = y ~ x + I(x^2), size = 1, se=F) 
+
+g
+
+```
+
+
+```{r fig.width=10, echo=FALSE, warning=FALSE}
+
+
+g <- 1
+g <- ggplot(mrr_data, aes(variable, value))
+g <- g + geom_boxplot() 
+g <- g + geom_jitter()
+g <- g + theme_few()
+
+  g <- g + ggtitle("MRR Completed and Sold - Weekly Distribution - 63 Weeks") 
+  g <- g + xlab("") + ylab("Weekly Throughput") 
+g <- g + scale_y_continuous(labels=dollar)
+g
+
+
+g <- 1
+g <- ggplot(mrr_data, aes(x=value, fill=variable))
+g <- g + geom_density (aes(x=value, fill=variable))
+g <- g + theme_few()
+g
+
+
+
+g <- 1
+g <- ggplot(mrr_data, aes(x=value, fill=variable))
+g <- g + geom_histogram(binwidth=2500) 
+g <- g + theme_few()
+g
+
+
+
+
+
+```
+
