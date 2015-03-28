@@ -6,16 +6,12 @@ output: pdf_document
 classoption: landscape
 ---
 
-##Budget Notes:
-* Delayed hiring has created the YTD positive variance
-* Contractor working on PVH Latitude / Longitude in March
-* Delayed hiring of some roles to Q3 to solve for "Q2 budget challenge"
-
-```{r fig.width=10, echo=FALSE, warning=FALSE}
+``` {r echo=FALSE, warning=FALSE}
 library("ggplot2")
 library("reshape")
 library("scales")
 library("ggthemes")
+library("knitr")
 sc <- read.csv (file="scorecard_data.csv")
 sc$Date <- as.Date(sc$Date, "%m/%d/%Y")
 sc$PDate <- as.POSIXct(sc$Date)
@@ -23,8 +19,35 @@ sc$PDate <- as.POSIXct(sc$Date)
 data <- melt (sc, id=c("Date", "Year", "Month", "PDate"))
 data$variable <- gsub("_", " ", data$variable)
 
+mrr_data <- subset(data, variable == "MRR Sold" | variable == "MRR Completed" | variable == "MRR Plan")
 budget_data <- subset(data, variable == "Expense Budget Original" | variable == "Expense Actual" | variable == "Expense Budget Latest")
+conn_data <- subset(data, variable == "Connections Sold" | variable == "Connections Completed" | variable == "Connections Plan")
 
+# prepare YTD data
+sc_ytd <- subset(sc, Year == 2015)
+sc_ytd <- cbind (sc_ytd, Cum_MRR_Comp=cumsum(sc_ytd$MRR_Completed))
+sc_ytd <- cbind (sc_ytd, Cum_MRR_Sold=cumsum(sc_ytd$MRR_Sold))
+sc_ytd <- cbind (sc_ytd, Cum_MRR_Plan=cumsum(sc_ytd$MRR_Plan))
+sc_ytd <- cbind (sc_ytd, Cum_Conn_Comp=cumsum(sc_ytd$Connections_Completed))
+sc_ytd <- cbind (sc_ytd, Cum_Conn_Sold=cumsum(sc_ytd$Connections_Sold))
+sc_ytd <- cbind (sc_ytd, Cum_Conn_Plan=cumsum(sc_ytd$Connections_Plan))
+
+data_ytd <- melt (sc_ytd, id=c("Date", "Year", "Month", "PDate"))
+data_ytd$variable <- gsub("_", " ", data_ytd$variable)
+
+mrr_data_ytd <- subset(data_ytd, variable == "Cum MRR Comp" | variable == "Cum MRR Sold" | variable == "Cum MRR Plan")
+conn_data_ytd <- subset(data_ytd, variable == "Cum Conn Comp" | variable == "Cum Conn Sold" | variable == "Cum Conn Plan")
+
+
+```
+
+
+##Budget Notes:
+* Delayed hiring has created the YTD positive variance
+* Contractor working on PVH Latitude / Longitude in March
+* Delayed hiring of some roles to Q3 to solve for "Q2 budget challenge"
+
+```{r fig.width=10, echo=FALSE, warning=FALSE}
 # create plot, add lines and points
 g <- ggplot(data=budget_data, aes(x=PDate, y=value, group=variable)) 
 g <- g + geom_line(aes(color=variable, group=variable)) 
@@ -56,19 +79,6 @@ g
 * Pet Supplies Plus will complete in April which will drive MRR and connections
 
 ```{r fig.width = 10, echo=FALSE, warning=FALSE}
-# library("ggplot2")
-# library("reshape")
-# library("scales")
-# library("ggthemes")
-# sc <- read.csv (file="scorecard_data.csv")
-# sc$Date <- as.Date(sc$Date, "%m/%d/%Y")
-# sc$PDate <- as.POSIXct(sc$Date)
-# 
-# data <- melt (sc, id=c("Date", "Year", "Month", "PDate"))
-# data$variable <- gsub("_", " ", data$variable)
-
-mrr_data <- subset(data, variable == "MRR Sold" | variable == "MRR Completed" | variable == "MRR Plan")
-
 # create plot, add lines and points
 g <- ggplot(data=mrr_data, aes(x=PDate, y=value, group=variable)) 
 g <- g + geom_line(aes(color=variable, group=variable)) 
@@ -92,62 +102,38 @@ g
 
 ```
 
+
 ```{r echo=FALSE, warning=FALSE}
-library("knitr")
-sc <- read.csv (file="scorecard_data.csv")
-sc$Date <- as.Date(sc$Date, "%m/%d/%Y")
-sc$PDate <- as.POSIXct(sc$Date)
-sc <- subset(sc, Year == 2015)
-sc <- cbind (sc, Cum_MRR_Comp=cumsum(sc$MRR_Completed))
-sc <- cbind (sc, Cum_MRR_Sold=cumsum(sc$MRR_Sold))
-sc <- cbind (sc, Cum_MRR_Plan=cumsum(sc$MRR_Plan))
 
 df <- data.frame(month=sc$Month, 
                  sc$MRR_Sold,
                  sc$MRR_Comp,
                  comp_to_sold=sc$MRR_Completed / sc$MRR_Sold,
-                 sc$Cum_MRR_Sold, 
-                 sc$Cum_MRR_Comp, 
-                 cum_comp_to_sold=sc$Cum_MRR_Comp / sc$Cum_MRR_Sold)
+                 sc$MRR_Plan, 
+                 comp_to_plan=sc$MRR_Completed / sc$MRR_Plan)
+
 
 df <- na.omit(df)
 
 #format table
 # percentages
 df$comp_to_sold <- paste(format(round(df$comp_to_sold*100, digits=0), big.mark=","), "%")
-df$cum_comp_to_sold <- paste(format(round(df$cum_comp_to_sold*100, digits=0), big.mark=","), "%")
+df$comp_to_plan <- paste(format(round(df$comp_to_plan*100, digits=0), big.mark=","), "%")
 
-df$sc.Cum_MRR_Sold <- paste("$", format(round(df$sc.Cum_MRR_Sold, digits=0), big.mark=","))
-df$sc.Cum_MRR_Comp <- paste("$", format(round(df$sc.Cum_MRR_Comp, digits=0), big.mark=","))
+#df$sc.Cum_MRR_Sold <- paste("$", format(round(df$sc.Cum_MRR_Sold, digits=0), big.mark=","))
+df$sc.MRR_Plan <- paste("$", format(round(df$sc.MRR_Plan, digits=0), big.mark=","))
 df$sc.MRR_Sold <- paste("$", format(round(df$sc.MRR_Sold, digits=0), big.mark=","))
 df$sc.MRR_Comp <- paste("$", format(round(df$sc.MRR_Comp, digits=0), big.mark=","))
   
-colnames(df) <- c("Month", "Sold", "Comp", "Comp to Sold", "Cum Sold", "Cum Comp", "Cum Comp to Sold")
+colnames(df) <- c("Month", "Sold", "Comp", "Comp to Sold", "Plan", "Comp to Plan")
 
 kable(df)
 
 ```
 
+\pagebreak
+
 ```{r fig.width = 10, echo=FALSE, warning=FALSE}
-library("ggplot2")
-library("reshape")
-library("scales")
-library("ggthemes")
-sc <- read.csv (file="scorecard_data.csv")
-sc$Date <- as.Date(sc$Date, "%m/%d/%Y")
-sc$PDate <- as.POSIXct(sc$Date)
-
-# this graph for cumulative MRR sold, completed, and plan
-sc_ytd <- subset(sc_ytd, Year == 2015)
-
-sc_ytd <- cbind (sc_ytd, Cum_MRR_Comp=cumsum(sc_ytd$MRR_Completed))
-sc_ytd <- cbind (sc_ytd, Cum_MRR_Sold=cumsum(sc_ytd$MRR_Sold))
-sc_ytd <- cbind (sc_ytd, Cum_MRR_Plan=cumsum(sc_ytd$MRR_Plan))
-
-data_ytd <- melt (sc_ytd, id=c("Date", "Year", "Month", "PDate"))
-data_ytd$variable <- gsub("_", " ", data_ytd$variable)
-
-mrr_data_ytd <- subset(data, variable == "Cum MRR Comp" | variable == "Cum MRR Sold" | variable == "Cum MRR Plan")
 
 # create plot, add lines and points
 g <- ggplot(data=mrr_data_ytd, aes(x=PDate, y=value, group=variable)) 
@@ -171,6 +157,34 @@ g <- g + geom_vline(lty="dotted", xintercept = as.numeric(Sys.time()))
 g
 ```
 
+```{r echo=FALSE, warning=FALSE}
+
+df <- data.frame(month=sc_ytd$Month, 
+                 sc_ytd$Cum_MRR_Sold,
+                 sc_ytd$Cum_MRR_Comp,
+                 comp_to_sold=sc_ytd$Cum_MRR_Comp / sc_ytd$Cum_MRR_Sold,
+                 sc_ytd$Cum_MRR_Plan, 
+                 comp_to_plan=sc_ytd$Cum_MRR_Comp / sc_ytd$Cum_MRR_Plan)
+
+
+df <- na.omit(df)
+
+#format table
+# percentages
+df$comp_to_sold <- paste(format(round(df$comp_to_sold*100, digits=0), big.mark=","), "%")
+df$comp_to_plan <- paste(format(round(df$comp_to_plan*100, digits=0), big.mark=","), "%")
+
+#df$sc.Cum_MRR_Sold <- paste("$", format(round(df$sc.Cum_MRR_Sold, digits=0), big.mark=","))
+df$sc_ytd.Cum_MRR_Plan <- paste("$", format(round(df$sc_ytd.Cum_MRR_Plan, digits=0), big.mark=","))
+df$sc_ytd.Cum_MRR_Sold <- paste("$", format(round(df$sc_ytd.Cum_MRR_Sold, digits=0), big.mark=","))
+df$sc_ytd.Cum_MRR_Comp <- paste("$", format(round(df$sc_ytd.Cum_MRR_Comp, digits=0), big.mark=","))
+  
+colnames(df) <- c("Month", "Sold", "Comp", "Comp to Sold", "Plan", "Comp to Plan")
+
+kable(df)
+
+```
+
 \pagebreak
 
 ##Connection Notes:
@@ -178,18 +192,6 @@ g
 
 
 ```{r fig.width = 10, echo=FALSE, warning=FALSE}
-# library("ggplot2")
-# library("reshape")
-# library("scales")
-# library("ggthemes")
-# sc <- read.csv (file="scorecard_data.csv")
-# sc$Date <- as.Date(sc$Date, "%m/%d/%Y")
-# sc$PDate <- as.POSIXct(sc$Date)
-# 
-# data <- melt (sc, id=c("Date", "Year", "Month", "PDate"))
-# data$variable <- gsub("_", " ", data$variable)
-
-conn_data <- subset(data, variable == "Connections Sold" | variable == "Connections Completed" | variable == "Connections Plan")
 
 # create plot, add lines and points
 g <- ggplot(data=conn_data, aes(x=PDate, y=value, group=variable)) 
@@ -214,64 +216,35 @@ g
 
 ```
 
+
 ```{r fig.width = 10, echo=FALSE, warning=FALSE}
-library("knitr")
-sc <- read.csv (file="scorecard_data.csv")
-sc$Date <- as.Date(sc$Date, "%m/%d/%Y")
-sc$PDate <- as.POSIXct(sc$Date)
-sc <- subset(sc, Year == 2015)
-
-sc <- cbind (sc, Cum_Conn_Comp=cumsum(sc$Connections_Completed))
-sc <- cbind (sc, Cum_Conn_Sold=cumsum(sc$Connections_Sold))
-sc <- cbind (sc, Cum_Conn_Plan=cumsum(sc$Connections_Plan))
-
 df <- data.frame(month=sc$Month, 
                  sc$Connections_Sold,
                  sc$Connections_Completed,
                  comp_to_sold=sc$Connections_Completed / sc$Connections_Sold,
-                 sc$Cum_Conn_Sold, 
-                 sc$Cum_Conn_Comp, 
-                 cum_comp_to_sold=sc$Cum_Conn_Comp / sc$Cum_Conn_Sold)
+                 sc$Connections_Plan, 
+                 comp_to_plan=sc$Connections_Completed / sc$Connections_Plan)
 
 df <- na.omit(df)
 
 #format table
 # percentages
 df$comp_to_sold <- paste(format(round(df$comp_to_sold*100, digits=0), big.mark=","), "%")
-df$cum_comp_to_sold <- paste(format(round(df$cum_comp_to_sold*100, digits=0), big.mark=","), "%")
+df$comp_to_plan <- paste(format(round(df$comp_to_plan*100, digits=0), big.mark=","), "%")
 
-# connections
-df$sc.Cum_Conn_Sold <- format(round(df$sc.Cum_Conn_Sold, digits=0), big.mark=",")
-df$sc.Cum_Conn_Comp <- format(round(df$sc.Cum_Conn_Comp, digits=0), big.mark=",")
+df$sc.Connections_Plan <- format(round(df$sc.Connections_Plan, digits=0), big.mark=",")
 df$sc.Connections_Sold <- format(round(df$sc.Connections_Sold, digits=0), big.mark=",")
 df$sc.Connections_Completed <- format(round(df$sc.Connections_Completed, digits=0), big.mark=",")
-
-colnames(df) <- c("Month", "Sold", "Comp", "Comp to Sold", "Cum Sold", "Cum Comp", "Cum Comp to Sold")
+  
+colnames(df) <- c("Month", "Sold", "Comp", "Comp to Sold", "Plan", "Comp to Plan")
 
 kable(df)
+
 ```
 
+
 ```{r fig.width = 10, echo=FALSE, warning=FALSE}
-library("ggplot2")
-suppressWarnings(library("reshape"))
-library("scales")
-library("ggthemes")
-sc <- read.csv (file="scorecard_data.csv")
-sc$Date <- as.Date(sc$Date, "%m/%d/%Y")
-sc$PDate <- as.POSIXct(sc$Date)
-# this graph for cumulative connection sold, completed, and plan
-sc <- subset(sc, Year == 2015)
-
-sc <- cbind (sc, Cum_Conn_Comp=cumsum(sc$Connections_Completed))
-sc <- cbind (sc, Cum_Conn_Sold=cumsum(sc$Connections_Sold))
-sc <- cbind (sc, Cum_Conn_Plan=cumsum(sc$Connections_Plan))
-
-data <- melt (sc, id=c("Date", "Year", "Month", "PDate"))
-data$variable <- gsub("_", " ", data$variable)
-
-conn_data_ytd <- subset(data, variable == "Cum Conn Comp" | variable == "Cum Conn Sold" | variable == "Cum Conn Plan")
-
-# create plot, add lines and points
+#create plot, add lines and points
 g <- ggplot(data=conn_data_ytd, aes(x=PDate, y=value, group=variable)) 
 g <- g + geom_line(aes(color=variable, group=variable)) 
 g <- g + geom_point()  
@@ -295,4 +268,29 @@ g
 
 
 
+```{r echo=FALSE, warning=FALSE}
 
+df <- data.frame(month=sc_ytd$Month, 
+                 sc_ytd$Cum_Conn_Sold,
+                 sc_ytd$Cum_Conn_Comp,
+                 comp_to_sold=sc_ytd$Cum_Conn_Comp / sc_ytd$Cum_Conn_Sold,
+                 sc_ytd$Cum_Conn_Plan, 
+                 comp_to_plan=sc_ytd$Cum_Conn_Comp / sc_ytd$Cum_Conn_Plan)
+
+
+df <- na.omit(df)
+
+#format table
+# percentages
+df$comp_to_sold <- paste(format(round(df$comp_to_sold*100, digits=0), big.mark=","), "%")
+df$comp_to_plan <- paste(format(round(df$comp_to_plan*100, digits=0), big.mark=","), "%")
+
+df$sc_ytd.Cum_Conn_Plan <- format(round(df$sc_ytd.Cum_Conn_Plan, digits=0), big.mark=",")
+df$sc_ytd.Cum_Conn_Sold <- format(df$sc_ytd.Cum_Conn_Sold, big.mark=",")
+df$sc_ytd.Cum_Conn_Comp <- format(df$sc_ytd.Cum_Conn_Comp, big.mark=",")
+  
+colnames(df) <- c("Month", "Sold", "Comp", "Comp to Sold", "Plan", "Comp to Plan")
+
+kable(df)
+
+```
